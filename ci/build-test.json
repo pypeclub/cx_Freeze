@@ -1,0 +1,91 @@
+{
+   "bcrypt": {
+      "test_app": "test_bcrypt",
+      "requirements": "bcrypt"
+   },
+   "cryptography": {
+      "test_app": "test_crypt",
+      "requirements": "cryptography"
+   },
+   "icon": {
+      "test_app": [
+          "test_icon",
+          "teste_ícone",
+          "test_invalid"
+      ]
+   },
+   "matplotlib": {
+      "test_app": [
+         "matplotlib_afm",
+         "gui:matplotlib_eg"
+      ],
+      "requirements": [
+         "numpy",
+         "pillow --no-deps",
+         "matplotlib --prefer-binary",
+         "wxPython --no-deps --platform=win32,mingw",
+         "wxPython --no-deps --platform=linux --find-links=https://extras.wxpython.org/wxPython4/extras/linux/gtk3/ubuntu-18.04"
+      ]
+   },
+   "pandas": {
+      "test_app": "test_pandas",
+      "requirements": ["numpy", "pandas"]
+   },
+   "pillow": {
+      "test_app": "test_pillow",
+      "requirements": "pillow --no-deps"
+   },
+   "pycountry": {
+      "test_app": "test",
+      "requirements": "pycountry"
+   },
+   "pydantic": {
+      "test_app": "test_pydantic",
+      "requirements": "pydantic"
+   },
+   "pyqt5": {
+      "test_app": "gui:test_pyqt5",
+      "requirements": "PyQt5 --prefer-binary --conda=pyqt"
+   },
+   "pyside2": {
+      "test_app": "gui:test_pyside2",
+      "requirements": "PySide2 --mingw=pyside2-qt5"
+   },
+   "pythonnet-demo": {
+      "test_app": ["gui:helloform", "gui:splitter", "gui:wordpad"],
+      "requirements": "pythonnet"
+   },
+   "pytz": {
+      "test_app": "test_pytz",
+      "requirements": "pytz"
+   },
+   "pyzmq": {
+      "test_app": [
+         "svc:pyzmq_server",
+         "cmd:./pyzmq_client --timeout=4"
+      ],
+      "requirements": "pyzmq"
+   },
+   "service": {
+      "test_app": "cx_FreezeSampleService --install sample",
+      "requirements": "cx-logging",
+      "platform": ["win32", "mingw"]
+   },
+   "simple": {
+      "test_app": [
+          "hello",
+          "cmd:cp hello* Test_Hello.exe",
+          "cmd:./Test_Hello.exe ação ótica côncavo peña"
+      ]
+   },
+   "sqlite": {
+      "test_app": "test_sqlite3"
+   },
+   "tz": {
+      "test_app": "test_tz",
+      "requirements": [
+          "backports.zoneinfo --python-version<3.9",
+          "tzdata --platform=win32,mingw"
+      ]
+   }
+}
