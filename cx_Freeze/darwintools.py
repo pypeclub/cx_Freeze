@@ -109,9 +109,9 @@ class DarwinFile:
         # Path used is the resolved path, if available, and otherwise the
         # unresolved load path.
         self.machOReferenceForTargetPath: Dict[Path, MachOReference] = {}
-        self.isMachO = False
 
         if not _isMachOFile(self.path):
+            self.isMachO = False
             return
 
         # if this is a MachO file, extract linking information from it
@@ -137,14 +137,22 @@ class DarwinFile:
             else:
                 dict_path = resolved_path
             if dict_path in self.machOReferenceForTargetPath:
+                reference = self.machOReferenceForTargetPath[dict_path]
+                print(
+                    f"\n{raw_path} = {resolved_path}\n"
+                    f"-> {dict_path} -> "
+                    f"{reference.raw_reference_path}\n"
+                    f"{reference.resolved_path}\n"
+                )
                 raise DarwinException(
                     "Multiple dynamic libraries resolved to the same file."
                 )
-            self.machOReferenceForTargetPath[dict_path] = MachOReference(
+            reference = MachOReference(
                 source_file=self,
                 raw_path=raw_path,
                 resolved_path=resolved_path,
             )
+            self.machOReferenceForTargetPath[dict_path] = reference
 
     def __str__(self):
         l = []
@@ -261,9 +269,9 @@ class DarwinFile:
         raw_paths = [c.rpath for c in self.rpathCommands]
         rpath = []
         for rp in raw_paths:
-            rpp = Path(rp)
-            if rpp.is_absolute():
-                rpath.append(rpp)
+            test_rp = Path(rp)
+            if test_rp.is_absolute():
+                rpath.append(test_rp)
             elif self.isLoaderPath(rp):
                 rpath.append(self.resolveLoader(rp).resolve())
             elif self.isExecutablePath(rp):
@@ -349,6 +357,7 @@ class MachOCommand:
 
         # split the output into separate load commands
         out = subprocess.check_output(shell_command, encoding="utf-8")
+        print(out)
         for line in out.splitlines():
             line = line.strip()
             if line[:12] == "Load command":
@@ -390,7 +399,6 @@ class MachOLoadCommand(MachOCommand):
         pathline = pathline[4:].strip()
         pathline = pathline.split("(offset")[0].strip()
         self.load_path = pathline
-        return
 
     def getPath(self):
         return self.load_path
@@ -412,7 +420,6 @@ class MachORPathCommand(MachOCommand):
         pathline = pathline[4:].strip()
         pathline = pathline.split("(offset")[0].strip()
         self.rpath = pathline
-        return
 
     def __repr__(self):
         return f"<RPath path={self.rpath!r}>"
@@ -482,10 +489,10 @@ class DarwinFileTracker:
         self._darwin_file_for_build_path: Dict[Path, DarwinFile] = {}
 
         # mapping of (source location) paths to DarwinFile objects
-        self._darwin_file_for_source_path: Dict[str, DarwinFile] = {}
+        self._darwin_file_for_source_path: Dict[Path, DarwinFile] = {}
 
         # a cache of MachOReference objects pointing to a given source path
-        self._reference_cache: Dict[str, MachOReference] = {}
+        self._reference_cache: Dict[Path, MachOReference] = {}
 
     def __iter__(self) -> Iterable[DarwinFile]:
         return iter(self._copied_file_list)
@@ -499,30 +506,28 @@ class DarwinFileTracker:
     def getDarwinFile(
         self, source_path: Path, target_path: Path
     ) -> DarwinFile:
-        """Gets the DarwinFile for file copied from sourcePath to targetPath.
+        """Gets the DarwinFile for file copied from source_path to target_path.
         If either (i) nothing, or (ii) a different file has been copied to
         targetPath, raises a DarwinException."""
-        # check that the file has been copied to
-        if target_path not in self._darwin_file_for_build_path:
-            raise DarwinException(
-                f"File {target_path!r} already copied to, "
-                "but no DarwinFile object found for it."
-            )
-
         # check that the target file came from the specified source
-        targetDarwinFile: DarwinFile = self._darwin_file_for_build_path[
-            target_path
-        ]
+        targetDarwinFile: DarwinFile
+        try:
+            targetDarwinFile = self._darwin_file_for_build_path[target_path]
+        except KeyError:
+            raise DarwinException(
+                f"File {target_path} already copied to, "
+                "but no DarwinFile object found for it."
+            ) from None
         real_source = source_path.resolve()
-        target_real_source = targetDarwinFile.path
+        target_real_source = targetDarwinFile.path.resolve()
         if real_source != target_real_source:
             # raise DarwinException(
             print(
                 "*** WARNING ***\n"
                 f"Attempting to copy two files to {target_path}\n"
                 f"source 1: {targetDarwinFile.path} "
-                f"(real: {target_real_source!r})\n"
-                f"source 2: {source_path!r} (real: {real_source!r})\n"
+                f"(real: {target_real_source})\n"
+                f"source 2: {source_path} (real: {real_source})\n"
                 "(This may be caused by including modules in the zip file "
                 "that rely on binary libraries with the same name.)"
                 "\nUsing only source 1."
@@ -548,13 +553,9 @@ class DarwinFileTracker:
     def getCachedReferenceTo(
         self, source_path: Path
     ) -> Optional[MachOReference]:
-        if source_path in self._reference_cache:
-            return self._reference_cache[source_path]
-        return None
+        return self._reference_cache.get(source_path)
 
-    def findDarwinFileForFilename(
-        self, filename: str
-    ) -> Optional[DarwinFile]:
+    def findDarwinFileForFilename(self, filename: str) -> Optional[DarwinFile]:
         """Attempts to locate a copied DarwinFile with the specified filename
         and returns that. Otherwise returns None."""
         basename = Path(filename).name
@@ -574,7 +575,9 @@ class DarwinFileTracker:
         2) Files with broken @rpath references. We try to fix that up here by
            seeing if the relevant file was located *anywhere* as part of the
            freeze process."""
-        for copied_file in self._copied_file_list:  # DarwinFile
+        copied_file: DarwinFile
+        reference: MachOReference
+        for copied_file in self._copied_file_list:
             for reference in copied_file.getMachOReferenceList():
                 if not reference.is_copied:
                     if reference.isResolved():

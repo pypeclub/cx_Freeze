@@ -295,6 +295,7 @@ class bdist_mac(Command):
         Make all the references from included Mach-O files to other included
         Mach-O files relative.
         """
+        darwinFile: DarwinFile
 
         for darwinFile in self.darwinTracker:
             # get the relative path to darwinFile in build directory
@@ -312,15 +313,15 @@ class bdist_mac(Command):
             # package, change the reference to be relative to @executable_path
             # (so an .app bundle will work wherever it is moved)
             for machORef in darwinFile.getMachOReferenceList():
-                if not machORef.isCopied:
+                if not machORef.is_copied:
                     # referenced file not copied -- assume this is a system
                     # file that will also be present on the user's machine,
                     # and do not change reference
                     continue
                 # this is the reference in the machO file that needs to be
                 # updated
-                rawPath = machORef.rawReferencePath
-                referencedDarwinFile: DarwinFile = machORef.targetFile
+                rawPath = machORef.raw_reference_path
+                referencedDarwinFile: DarwinFile = machORef.target_file
                 # this is where file copied in build dir
                 absoluteBuildDest = referencedDarwinFile.getBuildPath()
                 relativeBuildDest = os.path.relpath(
