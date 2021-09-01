@@ -157,6 +157,8 @@ class Freezer(ABC):
 
         # handle pre-copy tasks, normally on the target path
         source, target = self._pre_copy_hook(source, target)
+        source = source.resolve()
+        target = target.resolve()
 
         if target in self.files_copied:
             return
