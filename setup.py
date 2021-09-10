@@ -244,7 +244,7 @@ if __name__ == "__main__":
 
     setup(
         cmdclass={"build_ext": build_ext, "install_include": install_include},
-        options={"install": {"optimize": 1}},
+        options={"install": {}},
         ext_modules=extensions,
         packages=["cx_Freeze"],
         package_data={"cx_Freeze": package_data},

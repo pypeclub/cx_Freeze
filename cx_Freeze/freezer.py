@@ -126,6 +126,10 @@ class Freezer(ABC):
             normalized_source,
             normalized_target,
         ) = self._pre_copy_hook(source, target)
+        
+        # resolve paths
+        source = os.path.abspath(source)
+        target = os.path.abspath(target)
 
         if normalized_target in self.files_copied:
             return
